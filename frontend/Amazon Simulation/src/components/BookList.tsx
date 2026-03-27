@@ -1,23 +1,62 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { Book } from './types/Book';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { API_BASE } from '../apiBase';
+import { useCart } from '../context/CartContext';
+import type { Book } from '../types/Book';
+import type { BrowseRestoreState } from '../types/BrowseRestore';
 
 const PAGE_SIZE_OPTIONS = [5, 10, 25, 50] as const;
 
-function BookList() {
+const money = (n: number) =>
+  n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+
+type BookListProps = {
+  selectedCategories: string[];
+  currentPage: number;
+  onCurrentPageChange: (page: number) => void;
+  pageSize: number;
+  onPageSizeChange: (size: number) => void;
+  browseRestore: BrowseRestoreState;
+};
+
+function BookList({
+  selectedCategories,
+  currentPage,
+  onCurrentPageChange,
+  pageSize,
+  onPageSizeChange,
+  browseRestore,
+}: BookListProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { addToCart } = useCart();
+
   const [books, setBooks] = useState<Book[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
   const [titleSortDesc, setTitleSortDesc] = useState(false);
+  const [quantityByBook, setQuantityByBook] = useState<Record<number, number>>({});
 
   useEffect(() => {
     const fetchBooks = async () => {
-      const response = await fetch('https://localhost:5000/Bookstore/GetBooks');
-      const data = await response.json();
-      setBooks(data);
+      try {
+        const params = new URLSearchParams();
+        selectedCategories.forEach((c) => {
+          params.append('categories', c);
+        });
+        const qs = params.toString();
+        const url = qs
+          ? `${API_BASE}/Bookstore/GetBooks?${qs}`
+          : `${API_BASE}/Bookstore/GetBooks`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+        setBooks(data);
+      } catch (err) {
+        console.error('Failed to load books from the API:', err);
+      }
     };
 
     fetchBooks();
-  }, []);
+  }, [selectedCategories]);
 
   const sortedBooks = useMemo(() => {
     const copy = [...books];
@@ -32,9 +71,9 @@ function BookList() {
 
   useEffect(() => {
     if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
+      onCurrentPageChange(totalPages);
     }
-  }, [currentPage, totalPages]);
+  }, [currentPage, totalPages, onCurrentPageChange]);
 
   const pageBooks = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -42,20 +81,39 @@ function BookList() {
   }, [sortedBooks, currentPage, pageSize]);
 
   const goToPage = (p: number) => {
-    setCurrentPage(Math.min(Math.max(1, p), totalPages));
+    onCurrentPageChange(Math.min(Math.max(1, p), totalPages));
   };
 
   const handlePageSizeChange = (value: number) => {
-    setPageSize(value);
-    setCurrentPage(1);
+    onPageSizeChange(value);
   };
 
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 
+  const getQty = (bookID: number) => {
+    const q = quantityByBook[bookID];
+    return q !== undefined && q >= 1 ? q : 1;
+  };
+
+  const setQty = (bookID: number, raw: number) => {
+    const next = Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : 1;
+    setQuantityByBook((prev) => ({ ...prev, [bookID]: next }));
+  };
+
+  const handleAddToCart = (book: Book) => {
+    const qty = getQty(book.bookID);
+    addToCart(book, qty);
+    navigate('/cart', {
+      state: {
+        from: `${location.pathname}${location.search}`,
+        browseRestore,
+      },
+    });
+  };
+
   return (
-    <div className="container py-4">
+    <div>
       <header className="mb-4">
-        <h1 className="mb-3">Bookstore</h1>
         <div className="row g-3 align-items-end">
           <div className="col-sm-6 col-md-4 col-lg-3">
             <label htmlFor="pageSize" className="form-label mb-1">
@@ -94,17 +152,40 @@ function BookList() {
             {pageBooks.map((b) => (
               <div key={b.bookID} className="col-md-6 col-xl-4">
                 <div className="card book-card h-100 shadow-sm">
-                  <div className="card-body">
+                  <div className="card-body d-flex flex-column">
                     <h2 className="card-title h5">{b.title}</h2>
-                    <ul className="list-unstyled small mb-0">
+                    <ul className="list-unstyled small mb-3">
                       <li>By {b.author}</li>
                       <li>Published by {b.publisher}</li>
                       <li>ISBN: {b.isbn}</li>
                       <li>Category: {b.category}</li>
                       <li>Classification: {b.classification}</li>
                       <li>Page count: {b.pageCount}</li>
-                      <li className="fw-semibold mt-2">Price: ${b.price}</li>
+                      <li className="fw-semibold mt-2">Price: {money(Number(b.price))}</li>
                     </ul>
+                    <div className="mt-auto border-top pt-3">
+                      <label className="form-label small mb-1" htmlFor={`qty-${b.bookID}`}>
+                        Quantity
+                      </label>
+                      <div className="d-flex flex-wrap gap-2 align-items-center">
+                        <input
+                          id={`qty-${b.bookID}`}
+                          type="number"
+                          min={1}
+                          className="form-control"
+                          style={{ maxWidth: '5rem' }}
+                          value={getQty(b.bookID)}
+                          onChange={(e) => setQty(b.bookID, Number(e.target.value))}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          onClick={() => handleAddToCart(b)}
+                        >
+                          Add to cart
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
