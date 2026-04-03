@@ -12,17 +12,15 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<BookstoreDBContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("BookstoreConnection")));
 
-var corsOrigins = builder.Configuration["Cors:AllowedOrigins"]?
-    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-if (corsOrigins is not { Length: > 0 })
-    corsOrigins = new[] { "http://localhost:3000" };
-
+// CORS: browser requires exact match of the page origin (scheme + host + port).
+// Keep in sync with the deployed React site (Azure Static Web Apps).
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins(corsOrigins)
+        policy.WithOrigins(
+                "http://localhost:3000",
+                "https://green-dune-038b8b41e.7.azurestaticapps.net")
             .AllowAnyMethod()
             .AllowAnyHeader();
     });
@@ -37,8 +35,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// CORS must run before HTTPS redirect so OPTIONS preflight gets CORS headers (fixes many Azure SPA issues).
 app.UseCors();
+app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
