@@ -1,0 +1,4 @@
+{
+  "appService.defaultWebAppToDeploy": "/subscriptions/c2f82efe-58ef-4e99-954e-9dc5bc9e24f2/resourceGroups/appsvc_windows_francecentral/providers/Microsoft.Web/sites/AmazonHigbyBackend",
+  "appService.deploySubpath": "backend/Amazon.api/Amazon.api/publish"
+}

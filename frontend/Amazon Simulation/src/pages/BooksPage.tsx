@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import BookList from '../components/BookList';
 import CartSummary from '../components/CartSummary';
+import SiteNav from '../components/SiteNav';
 import CategoryFilter from '../components/CategoryFilter';
 import WelcomeBand from '../components/WelcomeBand';
 import type { BrowseRestoreState } from '../types/BrowseRestore';
@@ -46,6 +47,7 @@ function BooksPage() {
 
       <div className="row g-4">
         <div className="col-12">
+          <SiteNav />
           <header className="row align-items-center mb-0">
             <div className="col">
               <h1 className="mb-0">Bookstore</h1>

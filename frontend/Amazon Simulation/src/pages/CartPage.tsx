@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import SiteNav from '../components/SiteNav';
 import { useCart } from '../context/CartContext';
 import type { BrowseRestoreState } from '../types/BrowseRestore';
 
@@ -26,6 +27,7 @@ function CartPage() {
     <div className="container py-4 text-start">
       <div className="row g-4">
         <div className="col-12">
+          <SiteNav />
           <nav aria-label="breadcrumb">
             <ol className="breadcrumb mb-0">
               <li className="breadcrumb-item">

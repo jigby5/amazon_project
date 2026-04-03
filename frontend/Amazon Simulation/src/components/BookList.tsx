@@ -155,13 +155,18 @@ function BookList({
                   <div className="card-body d-flex flex-column">
                     <h2 className="card-title h5">{b.title}</h2>
                     <ul className="list-unstyled small mb-3">
-                      <li>By {b.author}</li>
-                      <li>Published by {b.publisher}</li>
-                      <li>ISBN: {b.isbn}</li>
-                      <li>Category: {b.category}</li>
-                      <li>Classification: {b.classification}</li>
-                      <li>Page count: {b.pageCount}</li>
-                      <li className="fw-semibold mt-2">Price: {money(Number(b.price))}</li>
+                      <li>By {b.author ?? '—'}</li>
+                      <li>Published by {b.publisher ?? '—'}</li>
+                      <li>ISBN: {b.isbn ?? '—'}</li>
+                      <li>Category: {b.category ?? '—'}</li>
+                      <li>Classification: {b.classification ?? '—'}</li>
+                      <li>Page count: {b.pageCount ?? '—'}</li>
+                      <li className="fw-semibold mt-2">
+                        Price:{' '}
+                        {b.price != null && Number.isFinite(Number(b.price))
+                          ? money(Number(b.price))
+                          : '—'}
+                      </li>
                     </ul>
                     <div className="mt-auto border-top pt-3">
                       <label className="form-label small mb-1" htmlFor={`qty-${b.bookID}`}>
