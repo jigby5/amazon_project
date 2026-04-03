@@ -32,11 +32,15 @@ function BookList({
   const { addToCart } = useCart();
 
   const [books, setBooks] = useState<Book[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [titleSortDesc, setTitleSortDesc] = useState(false);
   const [quantityByBook, setQuantityByBook] = useState<Record<number, number>>({});
 
   useEffect(() => {
     const fetchBooks = async () => {
+      setLoading(true);
+      setLoadError(null);
       try {
         const params = new URLSearchParams();
         selectedCategories.forEach((c) => {
@@ -48,10 +52,23 @@ function BookList({
           : `${API_BASE}/Bookstore/GetBooks`;
 
         const response = await fetch(url);
-        const data = await response.json();
-        setBooks(data);
+        if (!response.ok) {
+          setBooks([]);
+          setLoadError(
+            `Could not load books (HTTP ${response.status}). Check that the API is deployed and CORS allows this site.`,
+          );
+          return;
+        }
+        const data: Book[] = await response.json();
+        setBooks(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Failed to load books from the API:', err);
+        setBooks([]);
+        setLoadError(
+          'Network error — often CORS or wrong API URL. Set VITE_API_BASE_URL when building the frontend, and add your Azure Static Web App URL to CORS on the API.',
+        );
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -144,8 +161,19 @@ function BookList({
         </div>
       </header>
 
-      {sortedBooks.length === 0 ? (
-        <p className="text-muted">No books loaded yet.</p>
+      {loadError ? (
+        <div className="alert alert-warning" role="alert">
+          <strong>Could not load books.</strong> {loadError}
+          <p className="small mb-0 mt-2">
+            API base in this build: <code>{API_BASE}</code>
+          </p>
+        </div>
+      ) : loading ? (
+        <p className="text-muted">Loading books…</p>
+      ) : sortedBooks.length === 0 ? (
+        <p className="text-muted">
+          No books to show. The catalog may be empty on the server, or no books match your filters.
+        </p>
       ) : (
         <>
           <div className="row g-4">
